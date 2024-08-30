@@ -1,23 +1,22 @@
 import torch
 import torch.nn as nn
 import torch.functional as F
+import math
 
-class AttentionHead():
-
-    def check_if_mask_valid(mask):
-        if (mask != 'encoder' and mask != 'decoder'):
-            raise Exception('Invalid mask')
+class AttentionHead(nn.Module):
 
     def __init__(self, emb_dim, head_size, context_window_len, mask):
 #        super(self).__init__()
         # These Layers Map (B, W, E) -> (B, W, HEAD_SIZE)
+
+        assert mask == 'encoder' or mask == 'decoder'
+
         self.key = nn.Linear(emb_dim, head_size, bias=False)
         self.query = nn.Linear(emb_dim, head_size, bias=False)
         self.value = nn.Linear(emb_dim, head_size, bias=False)
         self.mask_type = mask
         self.context_window_len = context_window_len
-
-        AttentionHead.check_if_mask_valid(mask)
+        self.head_size = head_size
 
     # Returns a mask of (W, W)
     def get_mask_tensor(self):
@@ -32,10 +31,10 @@ class AttentionHead():
         k = self.key(input) # Convert (B, W1, E) -> (B, W1, HEAD_SIZE)
         q = self.query(input) # Convert (B, W2, E) -> (B, W2, HEAD_SIZE) (W1 == W2 == W3)
         v = self.value(input) # (B, W3, E) -> (B, W3, HEAD_SIZE)
-        influence = q @ k.transpose(-2, -1) # Produce Matrix (B, W1, W2)
+        match = q @ k.transpose(-2, -1) # Produce Matrix (B, W1, W2)
         mask = self.get_mask_tensor()
-        influence = influence.masked_fill(mask == 0, float('-inf'))
-        weights = torch.softmax(influence, dim=-1) # Still (B, W1, W2)
+        match = match.masked_fill(mask == 0, float('-inf'))
+        attention = torch.softmax(match, dim=-1) / math.sqrt(self.head_size) # Still (B, W1, W2)
 
-        res = weights @ v # (B, W1, W2) @ (B, W3, E) -> (B, W1=W3, E)
+        res = attention @ v # (B, W1, W2) @ (B, W3, HEAD_SIZE) -> (B, W1=W3, HEAD_SIZE)
         return res
