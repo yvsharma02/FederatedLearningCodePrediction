@@ -24,7 +24,7 @@ class CustomTransformer():
         return self.token_embedding(input) + self.position_embedding(input)
 
     # Raw input is a tesnor of (B, W). It should have already mapped tokens to integer.
-    def __forward__(self, raw_input):
+    def forward(self, raw_input):
 
         input = self.embed(raw_input)
 
