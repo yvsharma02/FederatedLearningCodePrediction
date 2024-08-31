@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-class CustomTransformer():
+class CustomTransformer(nn.Module):
 
     # Input to the Transformer will be a matrix of size (B, W)
     # B is the Batch Size.
@@ -14,7 +14,7 @@ class CustomTransformer():
     # There are two batches [a, b, c] and [d, e, f] (B = 2)
     # a, b, c should be integers (each representing one possible token). a, b, c should belong in [0, dict_size)
     def __init__(self, dict_size, context_window_size, embedding_dimensions):
-
+        super(CustomTransformer, self).__init__()
         self.token_embedding = nn.Embedding(dict_size, embedding_dimensions)
         self.position_embedding = nn.Embedding(context_window_size, embedding_dimensions)
 

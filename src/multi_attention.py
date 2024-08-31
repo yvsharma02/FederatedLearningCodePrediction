@@ -2,12 +2,12 @@ from attention_head import AttentionHead
 import torch
 import torch.nn as nn
 
-class MultiHeadedAttention:
+class MultiHeadedAttention(nn.Module):
 
     def __init__(self, emb_dim, num_heads, context_window_len, mask):
-
+        super(MultiHeadedAttention, self).__init__()
         assert emb_dim % num_heads == 0
-        self.attention_heads = [AttentionHead(emb_dim, num_heads, context_window_len, mask) for i in range(0, emb_dim / num_heads)]
+        self.attention_heads = [AttentionHead(emb_dim, num_heads, context_window_len, mask) for i in range(0, emb_dim // num_heads)]
 
     # Input is (B, W, E)
     def forward(self, input):

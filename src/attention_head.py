@@ -6,7 +6,7 @@ import math
 class AttentionHead(nn.Module):
 
     def __init__(self, emb_dim, head_size, context_window_len, mask):
-#        super(self).__init__()
+        super(AttentionHead, self).__init__()
         # These Layers Map (B, W, E) -> (B, W, HEAD_SIZE)
 
         assert mask == 'encoder' or mask == 'decoder'
