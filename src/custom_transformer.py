@@ -1,19 +1,16 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from multi_attention import MultiHeadedAttention
 from attention_head import AttentionHead
 
 class Block(nn.Module):
-
-
     def __init__(self, dict_size, context_window_size, embedding_dimensions, head_size):
-        super(CustomTransformer, self).__init__()
-        self.token_embedding = nn.Embedding(dict_size, embedding_dimensions)
-        self.position_embedding = nn.Embedding(context_window_size, embedding_dimensions)
+        super(Block, self).__init__()
 
         self.network = nn.Sequential(
-            MultiHeadedAttention(4 * embedding_dimensions, head_size, context_window_size, 'encoder'),
+            MultiHeadedAttention(embedding_dimensions, head_size, context_window_size, 'encoder'),
             nn.Linear(embedding_dimensions, 4 * embedding_dimensions),
             nn.ReLU(),
             nn.Linear(embedding_dimensions * 4, embedding_dimensions),
@@ -39,19 +36,27 @@ class CustomTransformer(nn.Module):
     # a, b, c should be integers (each representing one possible token). a, b, c should belong in [0, dict_size)
     def __init__(self, dict_size, context_window_size, embedding_dimensions, head_size, block_count):
         super(CustomTransformer, self).__init__()
+        self.context_window_size = context_window_size
         self.token_embedding = nn.Embedding(dict_size, embedding_dimensions)
         self.position_embedding = nn.Embedding(context_window_size, embedding_dimensions)
 
         self.network = nn.Sequential(
-            *[Block(self, dict_size, context_window_size, embedding_dimensions, head_size, block_count) for _ in range(0, block_count)]
+            *[Block(dict_size, context_window_size, embedding_dimensions, head_size) for _ in range(0, block_count)]
         )
 
-    def embed(self, input):
-        return self.token_embedding(input) + self.position_embedding(input)
+    def embed(self, input, spatial = False):
+        emb = self.token_embedding(input)
+        if (spatial):
+            return emb + self.position_embedding(torch.arange(0, self.context_window_size))
+
+        return emb
 
     # Raw input is a tesnor of (B, W). It should have already mapped tokens to integer.
-    def forward(self, raw_input):
-
-        input = self.embed(raw_input)
-
-        return input
+    def forward(self, raw_input, targets):
+        input = self.embed(raw_input, True)
+        logits = self.network(input)
+        logits = logits.view(logits.shape[0] * logits.shape[1], logits.shape[2])
+        targets = targets.view(logits.shape[0])
+        loss = F.cross_entropy(logits, self.embed(targets, False))
+        print(loss)
+        return logits, loss
