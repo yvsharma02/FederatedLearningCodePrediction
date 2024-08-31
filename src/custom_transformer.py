@@ -39,6 +39,7 @@ class CustomTransformer(nn.Module):
         self.context_window_size = context_window_size
         self.token_embedding = nn.Embedding(dict_size, embedding_dimensions)
         self.position_embedding = nn.Embedding(context_window_size, embedding_dimensions)
+        self.decoder = nn.Linear(embedding_dimensions, dict_size)
 
         self.network = nn.Sequential(
             *[Block(dict_size, context_window_size, embedding_dimensions, head_size) for _ in range(0, block_count)]
@@ -55,8 +56,9 @@ class CustomTransformer(nn.Module):
     def forward(self, raw_input, targets):
         input = self.embed(raw_input, True)
         logits = self.network(input)
+        logits = self.decoder(logits)
         logits = logits.view(logits.shape[0] * logits.shape[1], logits.shape[2])
         targets = targets.view(logits.shape[0])
-        loss = F.cross_entropy(logits, self.embed(targets, False))
-        print(loss)
+        loss = F.cross_entropy(logits, targets)
+        #print(loss)
         return logits, loss
