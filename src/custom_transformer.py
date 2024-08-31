@@ -57,8 +57,11 @@ class CustomTransformer(nn.Module):
         input = self.embed(raw_input, True)
         logits = self.network(input)
         logits = self.decoder(logits)
-        logits = logits.view(logits.shape[0] * logits.shape[1], logits.shape[2])
-        targets = targets.view(logits.shape[0])
-        loss = F.cross_entropy(logits, targets)
+        if (targets != None):
+            logits_1d = logits.view(logits.shape[0] * logits.shape[1], logits.shape[2])
+            targets = targets.view(logits_1d.shape[0])
+            loss = F.cross_entropy(logits_1d, targets)
+        else:
+            loss = None
         #print(loss)
         return logits, loss
