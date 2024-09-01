@@ -8,16 +8,16 @@ from attention_head import AttentionHead
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Block(nn.Module):
-    def __init__(self, context_window_size, embedding_dimensions, head_size):
+    def __init__(self, context_window_size, embedding_dimensions, head_size, hidden_layer_multiplier = 4, dropout_rate = 0.3):
         super(Block, self).__init__()
 
         self.network = nn.Sequential(
             MultiHeadedAttention(embedding_dimensions, head_size, context_window_size, 'encoder'),
-            nn.Linear(embedding_dimensions, 4 * embedding_dimensions, device=device),
+            nn.Linear(embedding_dimensions, hidden_layer_multiplier * embedding_dimensions, device=device),
             nn.ReLU(),
-            nn.Linear(embedding_dimensions * 4, embedding_dimensions, device=device),
+            nn.Linear(embedding_dimensions * hidden_layer_multiplier, embedding_dimensions, device=device),
             nn.LayerNorm(embedding_dimensions, device=device),
-            nn.Dropout(0.1)
+            nn.Dropout(dropout_rate)
         )
 
     # Raw input is a tesnor of (B, W). It should have already mapped tokens to integer.
@@ -56,7 +56,6 @@ class CustomTransformer(nn.Module):
 
     # Raw input is a tesnor of (B, W). On CPU. It should have already mapped tokens to integer.
     def forward(self, raw_input, targets):
-#        x = torch.randn(1)
         if(raw_input.device != device):
             raw_input = raw_input.to(device)
         input = self.embed(raw_input, True)
@@ -70,5 +69,4 @@ class CustomTransformer(nn.Module):
             loss = F.cross_entropy(logits_1d, targets)
         else:
             loss = None
-        #print(loss)
         return logits, loss
