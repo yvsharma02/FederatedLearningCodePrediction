@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.functional as F
 import math
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class AttentionHead(nn.Module):
 
     def __init__(self, emb_dim, head_size, context_window_len, mask):
@@ -11,9 +13,9 @@ class AttentionHead(nn.Module):
 
         assert mask == 'encoder' or mask == 'decoder'
 
-        self.key = nn.Linear(emb_dim, head_size, bias=False)
-        self.query = nn.Linear(emb_dim, head_size, bias=False)
-        self.value = nn.Linear(emb_dim, head_size, bias=False)
+        self.key = nn.Linear(emb_dim, head_size, bias=False, device=device)
+        self.query = nn.Linear(emb_dim, head_size, bias=False, device=device)
+        self.value = nn.Linear(emb_dim, head_size, bias=False, device=device)
         self.mask_type = mask
         self.context_window_len = context_window_len
         self.head_size = head_size
@@ -21,9 +23,9 @@ class AttentionHead(nn.Module):
     # Returns a mask of (W, W)
     def get_mask_tensor(self):
         if (self.mask_type == 'encoder'):
-            return torch.tril(torch.ones(self.context_window_len, self.context_window_len))
+            return torch.tril(torch.ones(self.context_window_len, self.context_window_len, device=device))
         elif (self.mask_type == 'decoder'):
-            return torch.ones(self.context_window_len, self.context_window_len)
+            return torch.ones(self.context_window_len, self.context_window_len, device=device)
     
     # Input is of shape (B, W, E) where E is embedding dimensions.
     # Output is of shape (B, W, E)
