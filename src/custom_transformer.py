@@ -8,11 +8,11 @@ from attention_head import AttentionHead
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Block(nn.Module):
-    def __init__(self, context_window_size, embedding_dimensions, head_size, hidden_layer_multiplier = 4, dropout_rate = 0.3):
+    def __init__(self, context_window_size, embedding_dimensions, num_heads, hidden_layer_multiplier = 4, dropout_rate = 0.3):
         super(Block, self).__init__()
 
         self.network = nn.Sequential(
-            MultiHeadedAttention(embedding_dimensions, head_size, context_window_size, 'encoder'),
+            MultiHeadedAttention(embedding_dimensions, num_heads, context_window_size, 'decoder'),
             nn.Linear(embedding_dimensions, hidden_layer_multiplier * embedding_dimensions, device=device),
             nn.ReLU(),
             nn.Linear(embedding_dimensions * hidden_layer_multiplier, embedding_dimensions, device=device),
@@ -36,7 +36,7 @@ class CustomTransformer(nn.Module):
     # [a, b, c] is an input example. (context_len = W = 3)
     # There are two batches [a, b, c] and [d, e, f] (B = 2)
     # a, b, c should be integers (each representing one possible token). a, b, c should belong in [0, dict_size)
-    def __init__(self, dict_size, context_window_size, embedding_dimensions, head_size, block_count):
+    def __init__(self, dict_size, context_window_size, embedding_dimensions, num_heads, block_count):
         super(CustomTransformer, self).__init__()
         self.context_window_size = context_window_size
         self.token_embedding = nn.Embedding(dict_size, embedding_dimensions, device=device)
@@ -44,7 +44,7 @@ class CustomTransformer(nn.Module):
         self.decoder = nn.Linear(embedding_dimensions, dict_size, device=device)
 
         self.network = nn.Sequential(
-            *[Block(context_window_size, embedding_dimensions, head_size) for _ in range(0, block_count)]
+            *[Block(context_window_size, embedding_dimensions, num_heads) for _ in range(0, block_count)]
         )
 
     def embed(self, input, spatial = False):
