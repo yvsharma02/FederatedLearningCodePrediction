@@ -2,7 +2,8 @@
 import json
 import os
 
-def process_file(src_file: str, output_dir: str):
+#Converts main dataset (which is a list of json) to multiple json files, each represnting one entry.
+def fragment_dataset(src_file: str, output_dir: str, limit : int = -1):
     with open(src_file, "r") as f:
         line1 = f.readline()  # [
 
@@ -18,7 +19,7 @@ def process_file(src_file: str, output_dir: str):
                 example_lines.append(line)
             
             if end:
-                break
+                return count
 
             if example_lines[-1][-2] == ",":
                 example_lines[-1] = example_lines[-1][:-2]
@@ -34,9 +35,14 @@ def process_file(src_file: str, output_dir: str):
             print(f"subfolder_{subfolder_count}/example_{count % 50000}.json")
 
             count += 1
+            print(count)
+            if (limit != -1 and count > limit):
+                return limit
+            
             if count % 50000 == 0:
                 subfolder_count += 1
 
+# Loads the original code from the fragmented files.
 def load_example(index : int, base_dir : str):
     with open(os.path.join(base_dir, f"subfolder_{index // 50000}/example_{index % 50000}.json"), "r") as f:
             data = json.load(f)
@@ -46,9 +52,14 @@ def load_example(index : int, base_dir : str):
 def load_examples(indices : list[int], base_dir : str):
     return [load_example(index, base_dir) for index in indices]
 
-def large_text_file_dump(indices : list[int], base_dir : str, DELIMITER : str, output_file : str):
+# Converts the fragmented files to a single txt file.
+def fragmented_files_to_txt_file(indices : list[int], base_dir : str, DELIMITER : str, output_file : str):
     examples = load_examples(indices, base_dir)
     examples[0] = f"{DELIMITER}{examples[0]}"
+
+    if (not os.path.exists(base_dir)):
+        os.makedirs(base_dir)
+
     with open(os.path.join(base_dir, output_file), "w") as f:
         for example in examples:
             try:
