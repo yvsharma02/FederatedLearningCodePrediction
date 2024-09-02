@@ -12,7 +12,7 @@ class Block(nn.Module):
         super(Block, self).__init__()
 
         self.network = nn.Sequential(
-            MultiHeadedAttention(embedding_dimensions, num_heads, context_window_size, 'decoder'),
+            MultiHeadedAttention(embedding_dimensions, num_heads, context_window_size, 'encoder'),
             nn.Linear(embedding_dimensions, hidden_layer_multiplier * embedding_dimensions, device=device),
             nn.ReLU(),
             nn.Linear(embedding_dimensions * hidden_layer_multiplier, embedding_dimensions, device=device),

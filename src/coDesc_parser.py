@@ -48,9 +48,10 @@ def load_examples(indices : list[int], base_dir : str):
 
 def large_text_file_dump(indices : list[int], base_dir : str, DELIMITER : str, output_file : str):
     examples = load_examples(indices, base_dir)
+    examples[0] = f"{DELIMITER}{examples[0]}"
     with open(os.path.join(base_dir, output_file), "w") as f:
         for example in examples:
             try:
-                f.write(f"{DELIMITER}{example}{DELIMITER}" + "\n")
+                f.write(f"{example}{DELIMITER}" + "\n")
             except:
                 print(example)
