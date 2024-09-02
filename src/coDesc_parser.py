@@ -32,10 +32,10 @@ def fragment_dataset(src_file: str, output_dir: str, limit : int = -1):
                 for line in example_lines:
                     out.write(line)
 
-            print(f"subfolder_{subfolder_count}/example_{count % 50000}.json")
+            if (count % 5000 == 0):
+                print(f"subfolder_{subfolder_count}/example_{count % 50000}.json")
 
             count += 1
-            print(count)
             if (limit != -1 and count > limit):
                 return limit
             
