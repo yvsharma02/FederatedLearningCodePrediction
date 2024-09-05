@@ -42,6 +42,7 @@ def split(x : list, delim):
     cur = x[:ind]
     return [x[:ind]] + y if len(cur) != 0 else y
 
+
 def get_padded_longest_sample(encoded : list[int]):
     splits = split(encoded, DELIM_ENCODED)
     splits.sort(key=lambda x: -len(x))
@@ -70,7 +71,6 @@ class TextDataset(torch.utils.data.Dataset):
 
 def train(transformer, dataset, samples):
   optimizer = torch.optim.Adam(transformer.parameters(), lr=LEARNING_RATE)
-
   loss_history = []
   history = []
   loss_avg_block_size = 10
@@ -87,7 +87,6 @@ def train(transformer, dataset, samples):
       optimizer.zero_grad(set_to_none=True)
       loss.backward()
       optimizer.step()
-      
       history.append(loss.item())
       print (f"Iteration {i} Loss: {history[-1]}")
       if (len(history) >= loss_avg_block_size):
@@ -161,7 +160,7 @@ class FlowerClient(fl.client.NumPyClient):
         logits, loss = net(x, y)
         total_loss += loss
         c += 1
-
+     
     return float(loss), len(testloader.dataset), {"loss": float(total_loss / c)}
 
 # Start Flower client
