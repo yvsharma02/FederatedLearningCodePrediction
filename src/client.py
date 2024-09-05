@@ -24,13 +24,13 @@ VOCAB_SIZE = 2500
 DELIM_ENCODED = 0
 PADDING_ENCODED = 1
 
-CONTEXT_LEN = 4
+CONTEXT_LEN = 64
 BLOCK_COUNT = 2
-EMBED_DIM = 10
-NUM_HEADS = 2
+EMBED_DIM = 256
+NUM_HEADS = 16
 LEARNING_RATE = 1e-2
-BATCH_COUNT = 2
-ITERATIONS = 1
+BATCH_COUNT = 32
+ITERATIONS = 1000
 
 tokenizer = ByteLevelBPETokenizer("data/tokenizer/vocab.json", "data/tokenizer/merges.txt")
 
@@ -127,8 +127,8 @@ def test(net, testloader, count):
 
 def load_data():
     
-    train = open("data/CoDesc/fragmented/train_utf8.txt", "r").read()[0:20]
-    test = open("data/CoDesc/fragmented/test_utf8.txt", "r").read()[0:20]
+    train = open("data/CoDesc/fragmented/train_utf8.txt", "r").read()
+    test = open("data/CoDesc/fragmented/test_utf8.txt", "r").read()
 
     train_enc = tokenizer.encode(train)
     test_enc = tokenizer.encode(test)
