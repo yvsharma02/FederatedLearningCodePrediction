@@ -34,6 +34,7 @@ VOCAB_SIZE = 2500
 DELIM_ENCODED = 0
 PADDING_ENCODED = 1
 
+# Should match the server
 CONTEXT_LEN = 32
 BLOCK_COUNT = 1
 EMBED_DIM = 32
@@ -289,6 +290,37 @@ class FlowerClient(fl.client.NumPyClient):
     self.testloader = testloader
 
 
+class PredOnlyClient(fl.client.NumPyClient):
+  def get_parameters(self, config):
+    res = [val.cpu().numpy() for _, val in self.net.state_dict().items()]
+    return res
+
+  def set_parameters(self, parameters):
+    params_dict = zip(self.net.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+    self.net.load_state_dict(state_dict, strict=True)
+
+  def fit(self, parameters, config):
+    self.set_parameters(parameters)
+#    train(self.net, self.trainloader, samples=len(self.trainloader.dataset))
+    return self.get_parameters(config={}), 1, {}
+
+  def evaluate(self, parameters, config):
+#    self.set_parameters(parameters)
+#    total_loss = 0
+#    c = 0
+#    for x,y in self.testloader:
+#        logits, loss = self.net(x, y)
+#        total_loss += loss
+#        c += 1
+
+    return 0.0001, 1, {"loss": 0.00001} #float(loss), len(self.testloader.dataset), {"loss": float(total_loss / c)}
+    
+     
+  def __init__(self, net):
+    self.net = net
+
+
 # # Start Flower client
 #fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient())
 
@@ -314,11 +346,12 @@ if (__name__ == "__main__"):
         tokenizer = ByteLevelBPETokenizer.from_file(f"{sys.argv[1]}/data/tokenizer/vocab.json", f"{sys.argv[1]}/data/tokenizer/merges.txt")
         net = CustomTransformer(VOCAB_SIZE, CONTEXT_LEN, EMBED_DIM, NUM_HEADS, BLOCK_COUNT)
         if (sys.argv[2] == "pred"):
-            net.load_state_dict(torch.load(f"{sys.argv[1]}/data/model.pt"))
+            fl.client.start_numpy_client(server_address="127.0.0.1:8085", client=PredOnlyClient(net))
+#            net.load_state_dict(torch.load(f"{sys.argv[1]}/data/model.pt"))
             ctx = sys.argv[3]#.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
             padded = get_padded_longest_sample(tokenizer.encode(ctx).ids)
             pred, loss = net(torch.stack([torch.tensor(padded)]), None)
-            print(tokenizer.decode(complete(padded, 10, net)))
+            print(tokenizer.decode(complete(padded, 20, net)))
         elif sys.argv[2] == "train":
             dataset = ""
             for fp in sys.argv[3].splitlines():
@@ -327,4 +360,4 @@ if (__name__ == "__main__"):
                     dataset += txt
             trainloader, testloader = load_data(tokenizer, dataset)
             filelog.write(dataset)
-            fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient(net, trainloader, testloader))
+            fl.client.start_numpy_client(server_address="127.0.0.1:8085", client=FlowerClient(net, trainloader, testloader))

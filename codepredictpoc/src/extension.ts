@@ -94,7 +94,7 @@ function readJavaFilesInDirAsString(dir: string): string {
 export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel("federated-learning-result")
 
-	let autoComplete = vscode.languages.registerCompletionItemProvider('java', {
+	let autoComplete = vscode.languages.registerCompletionItemProvider('python', {
         provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext) {
             const startOffset = 0;
             const range = new vscode.Range(document.positionAt(startOffset), position);
