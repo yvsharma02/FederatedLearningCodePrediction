@@ -34,13 +34,13 @@ VOCAB_SIZE = 2500
 DELIM_ENCODED = 0
 PADDING_ENCODED = 1
 
-CONTEXT_LEN = 256
-BLOCK_COUNT = 2
-EMBED_DIM = 1024
-NUM_HEADS = 32
+CONTEXT_LEN = 32
+BLOCK_COUNT = 1
+EMBED_DIM = 32
+NUM_HEADS = 2
 LEARNING_RATE = 1e-2
-BATCH_COUNT = 32
-ITERATIONS = 10
+BATCH_COUNT = 4
+ITERATIONS = 14
 
 class AttentionHead(nn.Module):
 
@@ -244,16 +244,16 @@ def test(net, testloader, count):
         break
   return total_loss / count
 
-def load_data(tokenizer):
+def load_data(tokenizer, txt):
     
 #    train = open("../data/CoDesc/fragmented/train_utf8.txt", "r").read()
 #    test = open("data/CoDesc/fragmented/test_utf8.txt", "r").read()
 
-    train_enc = tokenizer.encode(train)
-    test_enc = tokenizer.encode(test)
+    n = int(len(txt) * 0.9)
+    train_enc = tokenizer.encode(txt[:n])
+    test_enc = tokenizer.encode(txt[n:])
 
     return DataLoader(TextDataset(train_enc, CONTEXT_LEN), BATCH_COUNT, shuffle=True), DataLoader(TextDataset(test_enc, CONTEXT_LEN), BATCH_COUNT, shuffle=True)
-
 
 
 class FlowerClient(fl.client.NumPyClient):
@@ -279,13 +279,15 @@ class FlowerClient(fl.client.NumPyClient):
         logits, loss = self.net(x, y)
         total_loss += loss
         c += 1
-     
-    def __init__(self, net, trainloader, testloader):
-        self.net = net
-        self.trainloader = trainloader
-        self.testloader = testloader
 
     return float(loss), len(self.testloader.dataset), {"loss": float(total_loss / c)}
+    
+     
+  def __init__(self, net, trainloader, testloader):
+    self.net = net
+    self.trainloader = trainloader
+    self.testloader = testloader
+
 
 # # Start Flower client
 #fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient())
@@ -308,15 +310,21 @@ def complete(ctx, pred_len, transformer):
     return res[-c:]
 
 if (__name__ == "__main__"):
-    tokenizer = ByteLevelBPETokenizer.from_file(f"{sys.argv[1]}/data/tokenizer/vocab.json", f"{sys.argv[1]}/data/tokenizer/merges.txt")
-    if (sys.argv[2] == "pred"):
+    with (open("D:/log.txt", "a+") as filelog):
+        tokenizer = ByteLevelBPETokenizer.from_file(f"{sys.argv[1]}/data/tokenizer/vocab.json", f"{sys.argv[1]}/data/tokenizer/merges.txt")
         net = CustomTransformer(VOCAB_SIZE, CONTEXT_LEN, EMBED_DIM, NUM_HEADS, BLOCK_COUNT)
-        net.load_state_dict(torch.load(f"{sys.argv[1]}/data/model.pt"))
-        ctx = sys.argv[3]#.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
-        padded = get_padded_longest_sample(tokenizer.encode(ctx).ids)
-        pred, loss = net(torch.stack([torch.tensor(padded)]), None)
-        print(tokenizer.decode(complete(padded, 10, net)))
-    elif sys.argv[2] == "train":
-        pass
-#        trainloader, testloader = load_data(tokenizer)
-#        fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient())
+        if (sys.argv[2] == "pred"):
+            net.load_state_dict(torch.load(f"{sys.argv[1]}/data/model.pt"))
+            ctx = sys.argv[3]#.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+            padded = get_padded_longest_sample(tokenizer.encode(ctx).ids)
+            pred, loss = net(torch.stack([torch.tensor(padded)]), None)
+            print(tokenizer.decode(complete(padded, 10, net)))
+        elif sys.argv[2] == "train":
+            dataset = ""
+            for fp in sys.argv[3].splitlines():
+                with (open(fp, "r") as f):
+                    txt = f"{f.read()}${DELIMITER}"
+                    dataset += txt
+            trainloader, testloader = load_data(tokenizer, dataset)
+            filelog.write(dataset)
+            fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient(net, trainloader, testloader))

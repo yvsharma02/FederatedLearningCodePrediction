@@ -16,8 +16,8 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [{
-      "command": "toolbox.helloWorld",
-      "title": "Hello World!"
+      "command": "codepredictpoc.federated_learn",
+      "title": "Run Federated Learning"
     }
     ]
   },
