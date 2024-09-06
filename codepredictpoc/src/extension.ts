@@ -8,20 +8,21 @@ let CONTEXT_LENGTH = 64;
 
 function runPythonPrediction(input: string): string[] {
     try {
-		const pythonScriptPath = path.join(__dirname, '..', 'src/py_scripts', 'pred.py');
-		let result = child_process.execSync(`python "${pythonScriptPath}" "${input}"`).toString();
+		const extensionRoot = path.join(__dirname, '..')
+		const pythonScriptPath = path.join(extensionRoot, 'src/py_scripts', 'client.py');
+		let result = child_process.execSync(`python "${pythonScriptPath}" "${extensionRoot}" "pred" "${input}"`).toString();
 		return result.split('\n').filter(line => line.trim() !== '');;;
     } catch (error) {
         console.error('Error running Python script:', error);
         return [];
     }
-}
-
+}  
+  
 function runFederatedLearning() {
 	try {
-		const pythonScriptPath = path.join(__dirname, '..', 'src/py_scripts', 'train.py');
+		const pythonScriptPath = path.join(__dirname, '..', 'src/py_scripts', 'client.py');
 		outputChannel.appendLine("Starting Learning!");
-		let result = child_process.execSync(`python "${pythonScriptPath}""`).toString();
+		let result = child_process.execSync(`python "${pythonScriptPath}" "train"`).toString();
 		outputChannel.appendLine("Learning Successful!");
 	} catch (error) {
 		console.error('Error running Python script:', error);
@@ -34,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let autoComplete = vscode.languages.registerCompletionItemProvider('python', {
         provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext) {
             const currentOffset = document.offsetAt(position);
-            const startOffset = Math.max(0, currentOffset - CONTEXT_LENGTH);
+            const startOffset = 0;
             const range = new vscode.Range(document.positionAt(startOffset), position);
 
             const currentWord = document.getText(range);
