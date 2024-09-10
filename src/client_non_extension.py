@@ -1,3 +1,8 @@
+import os
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+import sys
+
 from collections import OrderedDict
 
 import flwr as fl
@@ -5,13 +10,10 @@ import torch
 from tokenizers import ByteLevelBPETokenizer
 from torch.utils.data import DataLoader
 
-import os
 from datetime import datetime
 
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
-
-from custom_transformer import CustomTransformer
 
 from collections import OrderedDict
 
@@ -20,11 +22,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(1234)
 torch._dynamo.config.suppress_errors = True
+TF_ENABLE_ONEDNN_OPTS=0
 
 DELIMITER = "<|endoftext|>"
 PADDING = "<|padding|>"
@@ -33,16 +34,14 @@ VOCAB_SIZE = 2500
 DELIM_ENCODED = 0
 PADDING_ENCODED = 1
 
-CONTEXT_LEN = 64
+# Should match the server
+CONTEXT_LEN = 128
 BLOCK_COUNT = 2
 EMBED_DIM = 256
 NUM_HEADS = 16
 LEARNING_RATE = 1e-2
 BATCH_COUNT = 32
-ITERATIONS = 1000
-
-tokenizer = ByteLevelBPETokenizer("../data/tokenizer/vocab.json", "../data/tokenizer/merges.txt")
-
+ITERATIONS = 10
 
 class AttentionHead(nn.Module):
 
@@ -191,7 +190,9 @@ class TextDataset(torch.utils.data.Dataset):
         return len(self.data) - self.context_len
 
     def __getitem__(self, idx):
-        return torch.tensor(get_padded_longest_sample(self.data[idx : idx + self.context_len]), device = device), torch.tensor(get_padded_longest_sample(self.data[idx + 1 :idx + self.context_len + 1]), device=device)
+        a = self.data[idx : idx + self.context_len]
+        b = self.data[idx + 1 :idx + self.context_len + 1]
+        return torch.tensor(get_padded_longest_sample(a), device = device), torch.tensor(get_padded_longest_sample(b), device=device)
 
 def train(transformer, dataset, samples):
   optimizer = torch.optim.Adam(transformer.parameters(), lr=LEARNING_RATE)
@@ -199,7 +200,7 @@ def train(transformer, dataset, samples):
   history = []
   loss_avg_block_size = 10
 
-  out_dir = "../data/out22M/"
+  out_dir = "../data-local/out22M/"
   if not os.path.exists(out_dir):
       os.makedirs(out_dir)
 
@@ -207,22 +208,26 @@ def train(transformer, dataset, samples):
   for current_train_in, current_train_target in dataset:
       start_time = datetime.now()
       # Process the current batch
+      print("A")
+      print(current_train_in.shape)
       logits, loss = transformer(current_train_in, current_train_target)
+      print("B")
       optimizer.zero_grad(set_to_none=True)
+      print("C")
       loss.backward()
+      print("D")
       optimizer.step()
+      print("E")
       history.append(loss.item())
-      print (f"Iteration {i} Loss: {history[-1]}")
       if (len(history) >= loss_avg_block_size):
           loss_history.append(torch.tensor(history).mean().item())
           history = []
-          print (f"Iteration {i} Loss: {loss_history[-1]}")
       i += 1
 
       if (not os.path.exists(out_dir)):
           os.makedirs(out_dir)
 
-      torch.save(transformer.state_dict(), os.path.join(out_dir, "model.pt"))
+#      torch.save(transformer.state_dict(), os.path.join(out_dir, "model.pt"))
       end_time = datetime.now()
 
       total_seconds = (end_time - start_time).total_seconds()
@@ -230,62 +235,140 @@ def train(transformer, dataset, samples):
       with open(os.path.join(out_dir, "loss.txt"), "a+") as f:
           f.write(f"Loss: {str(loss)}___________Time: {total_seconds}s\n")
 
+
+      print("F")
       if (i >= samples):
+          print("G")
           break
 
   if (len(history) > 0):
       loss_history.append(torch.tensor(history).mean().item())
 
-def test(net, testloader, count):
-  total_loss = 0
-  c = 0
-  with torch.no_grad():
-    for x, y in testloader:
-      logits, loss = net(x, y)
-      total_loss += loss
-      c += 1
-      if (c >= count):
-        break
-  return total_loss / count
-
-def load_data():
     
-    train = open("data/CoDesc/fragmented/train_utf8.txt", "r").read()
-    test = open("data/CoDesc/fragmented/test_utf8.txt", "r").read()
- 
-    train_enc = tokenizer.encode(train)
-    test_enc = tokenizer.encode(test)
+  print("H")
+
+
+# def test(net, testloader, count):
+#   total_loss = 0
+#   c = 0
+#   print("I")
+#   with torch.no_grad():
+#     for x, y in testloader:
+#       logits, loss = net(x, y)
+#       total_loss += loss
+#       c += 1
+#       if (c >= count):
+#         break
+#   print("J")
+#   return total_loss / count
+
+def load_data(tokenizer, txt):
+    
+#    train = open("../data/CoDesc/fragmented/train_utf8.txt", "r").read()
+#    test = open("data/CoDesc/fragmented/test_utf8.txt", "r").read()
+
+    n = int(len(txt) * 0.9)
+    train_enc = tokenizer.encode(txt[:n])
+    test_enc = tokenizer.encode(txt[n:])
 
     return DataLoader(TextDataset(train_enc, CONTEXT_LEN), BATCH_COUNT, shuffle=True), DataLoader(TextDataset(test_enc, CONTEXT_LEN), BATCH_COUNT, shuffle=True)
 
-net = CustomTransformer(VOCAB_SIZE, CONTEXT_LEN, EMBED_DIM, NUM_HEADS, BLOCK_COUNT)
-trainloader, testloader = load_data()
 
 class FlowerClient(fl.client.NumPyClient):
   def get_parameters(self, config):
-    res = [val.cpu().numpy() for _, val in net.state_dict().items()]
+    res = [val.cpu().numpy() for _, val in self.net.state_dict().items()]
     return res
 
   def set_parameters(self, parameters):
-    params_dict = zip(net.state_dict().keys(), parameters)
+    params_dict = zip(self.net.state_dict().keys(), parameters)
     state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-    net.load_state_dict(state_dict, strict=True)
+    self.net.load_state_dict(state_dict, strict=True)
 
   def fit(self, parameters, config):
     self.set_parameters(parameters)
-    train(net, trainloader, samples=len(trainloader.dataset))
-    return self.get_parameters(config={}), len(trainloader.dataset), {}
+    train(self.net, self.trainloader, samples=ITERATIONS)
+    return self.get_parameters(config={}), len(self.trainloader.dataset), {}
 
+  @torch.no_grad()
   def evaluate(self, parameters, config):
     self.set_parameters(parameters)
     total_loss = 0
     c = 0
-    for x,y in testloader:
-        logits, loss = net(x, y)
-        total_loss += loss
+    for x,y in self.testloader:
+        logits, loss = self.net(x, y)
+        total_loss += loss.item()
         c += 1
-     
-    return float(loss), len(testloader.dataset), {"loss": float(total_loss / c)}
 
-# Start Flower client
-fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient())
+    return float(loss), len(self.testloader.dataset), {"loss": float(total_loss / c)}
+    
+     
+  def __init__(self, net, trainloader, testloader):
+    self.net = net
+    self.trainloader = trainloader
+    self.testloader = testloader
+
+
+class PredOnlyClient(fl.client.NumPyClient):
+  def get_parameters(self, config):
+    res = [val.cpu().numpy() for _, val in self.net.state_dict().items()]
+    return res
+
+  def set_parameters(self, parameters):
+    params_dict = zip(self.net.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+    self.net.load_state_dict(state_dict, strict=True)
+
+  def fit(self, parameters, config):
+    self.set_parameters(parameters)
+#    train(self.net, self.trainloader, samples=len(self.trainloader.dataset))
+    return self.get_parameters(config={}), 1, {}
+
+  def evaluate(self, parameters, config):
+#    self.set_parameters(parameters)
+#    total_loss = 0
+#    c = 0
+#    for x,y in self.testloader:
+#        logits, loss = self.net(x, y)
+#        total_loss += loss
+#        c += 1
+
+    return 0.0001, 1, {"loss": 0.00001} #float(loss), len(self.testloader.dataset), {"loss": float(total_loss / c)}
+    
+     
+  def __init__(self, net):
+    self.net = net
+
+
+# # Start Flower client
+#fl.client.start_numpy_client(server_address="127.0.0.1:8081", client=FlowerClient())
+
+def complete(ctx, pred_len, transformer):
+    res = [x for x in ctx]
+    
+    c = 0
+    for _ in range(pred_len):
+        ctx = torch.tensor([res[-CONTEXT_LEN:]])
+        prob, loss = transformer(ctx, None) # Returns a tensor of size (1, W, EM)
+        prob = prob.squeeze(0)
+        prob = torch.softmax(prob, dim=-1) # (1, W, EM)
+        pred = torch.multinomial(prob, 1) # (1, W, 1)
+        if (pred[-1, 0].item() != DELIM_ENCODED):
+            c += 1
+            res.append(pred[-1, 0].item())
+        else:
+            break
+    return res[-c:]
+
+
+
+def run(i):
+    tokenizer = ByteLevelBPETokenizer.from_file("data/tokenizer/vocab.json", "data/tokenizer/merges.txt")
+    net = CustomTransformer(VOCAB_SIZE, CONTEXT_LEN, EMBED_DIM, NUM_HEADS, BLOCK_COUNT)
+    dataset = ""
+    for fp in ["src/test_sample.java", "src/train_sample.java"]:
+        with (open(fp, "r") as f):
+            txt = f"{f.read()}${DELIMITER}"
+            dataset += txt
+    trainloader, testloader = load_data(tokenizer, dataset)
+    client=FlowerClient(net, trainloader, testloader)
+    fl.client.start_numpy_client(server_address="127.0.0.1:8085", client=client)
