@@ -10,7 +10,7 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "onLanguage:python"
+    "onLanguage:java"
   ],
   
   "main": "./out/extension.js",

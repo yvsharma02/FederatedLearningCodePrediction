@@ -15,7 +15,7 @@ with torch.no_grad():
     NUM_HEADS = 16
     LEARNING_RATE = 1e-2
     BATCH_COUNT = 64
-    ITERATIONS = 200
+    ITERATIONS = 1
     VOCAB_SIZE = 2500
 
     def weighted_average(metrics):
