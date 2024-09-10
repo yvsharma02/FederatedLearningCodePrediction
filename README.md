@@ -22,8 +22,8 @@ The standalone model is of 22M parameter. Here is its' training graph (Trained f
 
 Example of a predicition by 22M model: <br/>
 
-_________________________SAMPLED_________________________:
-PluggableType pluggableType=BackendDescriptor.PluggableType.UNKNOWN;
+_________________________SAMPLED_________________________: <br/>
+```PluggableType pluggableType=BackendDescriptor.PluggableType.UNKNOWN;
       if (cn != null && cn.endsWith(DATABASE_JE_MONITORING_ENTRY_SUFFIX)) {
         pluggableType=BackendDescriptor.PluggableType.JE;
         monitorBackendID=cn.substring(0,cn.length() - DATABASE_JE_MONITORING_ENTRY_SUFFIX.length());
@@ -31,8 +31,9 @@ PluggableType pluggableType=BackendDescriptor.PluggableType.UNKNOWN;
       if (cn != null && cn.endsWith(DATABASE_PDB_MONITORING_ENTRY_SUFFIX)) {
         pluggableType=BackendDescriptor.PluggableType.PDB;
         monitorBackendID=cn.substring(0,cn.length() - DATABASE_PDB_MONITORING_ENTRY_SUFFIX
-_________________________PREDICTED_______________________:
-,0,ASE_CONFRELTERERENCEMCAPPROVID,fs.variableCompospVED_RESS);
+```
+_________________________PREDICTED_______________________: <br/>
+```,0,ASE_CONFRELTERERENCEMCAPPROVID,fs.variableCompospVED_RESS);
         getSrc.start();
       }
        MessageType.set(asser_TYPE,ge);
@@ -54,7 +55,7 @@ _________________________PREDICTED_______________________:
   }
   entermin",getLabelPfinal Client.getLabel() > 2) + 1 1);
   readPrevFocusableByte((byte)data.getC
-
+```
 
 To train the model in a standalone way, use main.ibpy <br/>
 
