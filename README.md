@@ -9,16 +9,23 @@ The architecture is very simple, based on the paper Attention is All you Need. T
 This is largely inspired by Andrej Karpthy's nanoGPT sreies. <br/>
 My model has been trained and tested on a very small part of CoDesc (Java Code Dataset) dataset.
 
+The standalone model is of 22M parameter. Here is its' training graph (Trained for over a day at 50K samples): <br/>
 
-The standalone model is of 22M parameter. Here is its' training graph: <br/>
+
+![federated_loss](https://github.com/user-attachments/assets/df2c3a1b-3c32-4ae8-acd5-ec245b04c719)
 
 
-The federated model is of 2.3M parameter. Here is it's training graph: <br/>
+<br/> The federated model is of 2.3M parameter. Here is it's training graph (Trained at 2K samples): <br/>
 
-To run the extension, just open the codepredictpoc folder, and press start debugging. Now whenever you press space in a javafile, wait for 15-20s (this is a delay to load env, the llm is almost instant), and a suggestion should popup. <br/>
+
+![output](https://github.com/user-attachments/assets/15b7623f-1d4b-44b0-9d5b-1e1b560f0e61)
+
+
+
+<br/> To run the extension, just open the codepredictpoc folder, and press start debugging. Now whenever you press space in a javafile, wait for 15-20s (this is a delay to load env, the llm is almost instant), and a suggestion should popup. <br/>
 
 To train the model in a standalone way, use main.ibpy <br/>
 
 To start a server for federated learning, start src/server.py <br/>
-To train the model in a federated way, start the code extension, press ctrl+shift=P then run Federated Learning. <br/>
+To train the model in a federated way, start the vscode extension, press ctrl+shift+P then run Federated Learning. <br/>
 Or you can use src/trainer.py as well <br/>
