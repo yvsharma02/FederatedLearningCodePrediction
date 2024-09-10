@@ -40,7 +40,7 @@ BLOCK_COUNT = 2
 EMBED_DIM = 256
 NUM_HEADS = 16
 LEARNING_RATE = 1e-2
-BATCH_COUNT = 32
+BATCH_COUNT = 64
 ITERATIONS = 10
 
 class AttentionHead(nn.Module):
@@ -208,16 +208,10 @@ def train(transformer, dataset, samples):
   for current_train_in, current_train_target in dataset:
       start_time = datetime.now()
       # Process the current batch
-      print("A")
-      print(current_train_in.shape)
       logits, loss = transformer(current_train_in, current_train_target)
-      print("B")
       optimizer.zero_grad(set_to_none=True)
-      print("C")
       loss.backward()
-      print("D")
       optimizer.step()
-      print("E")
       history.append(loss.item())
       if (len(history) >= loss_avg_block_size):
           loss_history.append(torch.tensor(history).mean().item())
@@ -236,16 +230,12 @@ def train(transformer, dataset, samples):
           f.write(f"Loss: {str(loss)}___________Time: {total_seconds}s\n")
 
 
-      print("F")
       if (i >= samples):
-          print("G")
           break
 
   if (len(history) > 0):
       loss_history.append(torch.tensor(history).mean().item())
 
-    
-  print("H")
 
 
 # def test(net, testloader, count):
@@ -267,7 +257,7 @@ def load_data(tokenizer, txt):
 #    train = open("../data/CoDesc/fragmented/train_utf8.txt", "r").read()
 #    test = open("data/CoDesc/fragmented/test_utf8.txt", "r").read()
 
-    n = int(len(txt) * 0.9)
+    n = int(len(txt) * 0.999)
     train_enc = tokenizer.encode(txt[:n])
     test_enc = tokenizer.encode(txt[n:])
 
@@ -298,7 +288,10 @@ class FlowerClient(fl.client.NumPyClient):
         logits, loss = self.net(x, y)
         total_loss += loss.item()
         c += 1
-
+    avg_loss = float(total_loss) / c
+    with (open ("loss_log.txt", "a+") as f):
+        f.write(f"{avg_loss}\n")
+    print(avg_loss)
     return float(loss), len(self.testloader.dataset), {"loss": float(total_loss / c)}
     
      

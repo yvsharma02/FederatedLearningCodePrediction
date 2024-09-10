@@ -14,8 +14,8 @@ with torch.no_grad():
     EMBED_DIM = 256
     NUM_HEADS = 16
     LEARNING_RATE = 1e-2
-    BATCH_COUNT = 32
-    ITERATIONS = 50
+    BATCH_COUNT = 64
+    ITERATIONS = 200
     VOCAB_SIZE = 2500
 
     def weighted_average(metrics):
